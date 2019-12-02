@@ -1,0 +1,112 @@
+---
+title: "Assignment 5"
+author: "Yani Pohl"
+date: "12/2/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      message = FALSE,
+                      warning = FALSE)
+
+# Attach packages 
+library(tidyverse)
+library(dplyr)
+library(janitor)
+library("RColorBrewer")
+library(effsize)
+library(kableExtra)
+library(here)
+```
+
+### Introduciton
+
+### Data and Methods
+
+### Results
+
+```{r}
+# Read in data form mack_creek_vertebrates.csv, clean names to lowercase snakecase
+
+mack_creek_raw <- read_csv("mack_creek_vertebrates.csv") %>% 
+  clean_names() 
+
+# Filter data to only keep pacific giant salamander data 
+
+salamander_raw <- mack_creek_raw %>% 
+  filter(species == "DITE")
+```
+
+#### A: Salamander Abundance by Forest Condition in Mack Creek (1993-2017)
+
+```{r}
+
+salamander_count <- salamander_raw %>% 
+  group_by(year) %>% 
+  count(section) %>% 
+  rename(count = n) %>% 
+  mutate(section = case_when(
+    section == "OG" ~ "Old Growth",
+    section == "CC" ~ "Clear Cut"))
+
+ggplot(salamander_count, aes(x = year, y = count)) +
+  geom_line(aes(color = section)) +
+  scale_color_manual(values = c("tan4", "green4")) +
+  scale_x_continuous(limits=c(1993,2017), 
+                     breaks=seq(1993,2017,3)) +
+  scale_y_continuous(limits=c(0,450), 
+                     breaks=seq(0,450,100)) +
+  labs(x = "Year",
+       y = "Pacific Giant Salamander Abundance\n (# ofindividuals)",
+       title = "Abundance of Pacific Giant Salamander in Mack Creek\n (1993 - 2017)") +
+  theme(panel.grid.minor = element_blank(),
+          panel.background = element_blank(),
+          axis.line = element_line(color = "black"),
+          legend.position = c(0.2, 0.8), 
+          legend.text = element_text(size = 12),
+          legend.key = element_blank(),
+          legend.title = element_blank(),
+          plot.title = element_text(hjust = .5),
+          plot.caption = element_text(hjust = .5))
+```
+**Fig 1.** *Pacific giant salamander population abundance in old growth (green) and clear cut (brown) sections of Mack Creek between 1993 and 2017.* Abundance increased in both sections between 1993 and 2017 and show similar trends in yearly abundance.
+
+Salamander abundance in Mack Creek shows an overall increase from 1993 to 2017 with populations nearly tripling in both clear cut and old growth sections during this time period. Abundance in both old growth and clear cut sections of Mack Creek follow similar patterns in yearly variation and in both sections there was a signifigant increase in abundance in 2001. Old growth and clear cut sections of Mack Creek also saw a large decline in salamander abundance in 2011, with abundance in both sections declining to similar amounts (137, 143 salamanders respectivly) by 2014. While both sections show similar recovery in abundance by 2017, prior to the 2011 population decline, salamander abundance in old growth sections was consitantly higher than in clear cut sections. When the populations began to recover in 2014, abundance increased faster in clear cut sections faster than in old growth.
+
+
+#### B: 2017 Salamander Counts by Channel Classification and Forest Condition
+
+
+**Table 1.** *Abundance of Pacific Giant Salamanders in clear cut and old growth areas by location in channel. Proportional percentage is show in paretheisis.*
+
+```{r}
+
+salamander_count_class <- salamander_raw %>% 
+  filter( year == 2017, unittype %in% c("C", "P", "SC")) %>% 
+  count(unittype, section) %>% 
+  rename(count = n) %>% 
+  mutate(section = case_when(
+    section == "OG" ~ "Old Growth",
+    section == "CC" ~ "Clear Cut"),
+    unittype = case_when(
+    unittype == "C" ~ "Cascade",
+    unittype == "P" ~ "Pool", 
+    unittype == "SC" ~ "Side Channel"))
+
+sal_class_table <- salamander_count_class %>% 
+  pivot_wider(names_from = unittype, values_from = count)
+
+sal_class_props <- sal_class_table %>% 
+  adorn_percentages(denominator = "row") %>% 
+  adorn_pct_formatting(digits = 1) %>% 
+  adorn_ns(position = "front")
+
+kable(sal_class_props, col.names = c("", "Cascade", "Pool", "Side Channel")) %>% 
+  add_header_above(c(" ", "Channel Classification" = 3)) %>% 
+  kable_styling(bootstrap_options = "hover", 
+                full_width = F,
+                position = "center")
+  
+```
+
