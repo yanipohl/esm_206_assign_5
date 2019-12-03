@@ -296,21 +296,25 @@ ggplot(sal_weight_class, aes(sample = weight)) +
 
 # Preform Levene's Test for equal variances
 
-leveneTest(weight ~ unittype, sal_weight_class)
+levene_class <- leveneTest(weight ~ unittype, sal_weight_class)
 
 # No siginfigant difference in varience across class classification
 
 # Preform a 1 Way ANOVA to test for siginfigant differences in mean weight across channel classification
 
 sal_class_aov <- aov(weight ~ unittype, sal_weight_class)
-summary(sal_class_aov)
+
 
 # The one way anova shows a signifigant difference between the means of one or more channel classifications. 
 
 # Preform post-hoc pairwise testing to compare each pair of means
 
-TukeyHSD(sal_class_aov)
+tukey_sal_class <- TukeyHSD(sal_class_aov)
+
+aov_outputs <- unlist(summary(sal_class_aov))
 ```
+
+The mean weight of Pacific Giant Salamanders differs signifigantly between pools (*$\mu$* = `r round(sal_mean_class$mean_weight[2],2)`g, $\pm$ `r round(sal_mean_class$sd[2], 2)`) and side channels (*$\mu$* = `r round(sal_mean_class$mean_weight[3], 2)`g, $\pm$ `r round(sal_mean_class$sd[3], 2)`) (one-way ANOVA with post-hoc Tukey's HSD, F(`r aov_outputs[1]`, `r aov_outputs[2]`) = `r round(aov_outputs[7],2)`, *p* = `r round(aov_outputs[9],3)`). There was no signifigant difference between the mean weight of salamanders found in cascades (*$\mu$* = `r round(sal_mean_class$mean_weight[1],2)`g, $\pm$ `r round(sal_mean_class$sd[1], 2)`).
 
 
 ### References:
