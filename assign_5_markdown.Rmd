@@ -18,6 +18,8 @@ library("RColorBrewer")
 library(effsize)
 library(kableExtra)
 library(here)
+library(ggbeeswarm)
+library(car)
 ```
 
 ### Introduciton
@@ -42,6 +44,8 @@ salamander_raw <- mack_creek_raw %>%
 
 ```{r}
 
+# Create data frame for annual lobster abundance (count) by forest condition (section).
+
 salamander_count <- salamander_raw %>% 
   group_by(year) %>% 
   count(section) %>% 
@@ -49,6 +53,8 @@ salamander_count <- salamander_raw %>%
   mutate(section = case_when(
     section == "OG" ~ "Old Growth",
     section == "CC" ~ "Clear Cut"))
+
+# Create line graph to visulize changes in salamander abundance by forest condition from 1993 - 2017
 
 ggplot(salamander_count, aes(x = year, y = count)) +
   geom_line(aes(color = section)) +
@@ -78,9 +84,11 @@ Salamander abundance in Mack Creek shows an overall increase from 1993 to 2017 w
 #### B: 2017 Salamander Counts by Channel Classification and Forest Condition
 
 
-**Table 1.** *Abundance of Pacific Giant Salamanders in clear cut and old growth areas by location in channel. Proportional percentage is show in paretheisis.*
+**Table 1.** *2017 Abundance of Pacific Giant Salamanders in clear cut and old growth areas by locaion in channel (cascade, pool, side channel). Proportional percentage is show in paretheisis.*
 
 ```{r}
+
+# Create data frame for 2017 lobster abundance (count) by channel classification pool, cascades and side-channel) for old growth and clear cut sections of Mack Creek.
 
 salamander_count_class <- salamander_raw %>% 
   filter( year == 2017, unittype %in% c("C", "P", "SC")) %>% 
@@ -94,13 +102,19 @@ salamander_count_class <- salamander_raw %>%
     unittype == "P" ~ "Pool", 
     unittype == "SC" ~ "Side Channel"))
 
+# Create contingency table
+
 sal_class_table <- salamander_count_class %>% 
   pivot_wider(names_from = unittype, values_from = count)
+
+# Calculate proportions 
 
 sal_class_props <- sal_class_table %>% 
   adorn_percentages(denominator = "row") %>% 
   adorn_pct_formatting(digits = 1) %>% 
   adorn_ns(position = "front")
+
+# Create table to visulize counts and proportions
 
 kable(sal_class_props, col.names = c("", "Cascade", "Pool", "Side Channel")) %>% 
   add_header_above(c(" ", "Channel Classification" = 3)) %>% 
@@ -110,3 +124,194 @@ kable(sal_class_props, col.names = c("", "Cascade", "Pool", "Side Channel")) %>%
   
 ```
 
+#### C: Association between forest condition and salamander location within Mack Creek
+
+```{r}
+
+# Run chi sq test to test for independance between where in the channel salamanders are found and forest condition
+
+chi_salamandar <- sal_class_table %>% 
+  select(-section)
+
+chi_sq_sal<- chisq.test(chi_salamandar)
+
+
+```
+
+There is no signifigant difference in where in the channel Pacific giant salamanders are located (pool, cascade or side channel) between old growth sections and clear cut sections of Mack Creek ($\chi$^2^(`r chi_sq_sal$parameter`) = `r round(chi_sq_sal$statistic, 2)`, *p* = `r round(chi_sq_sal$p.value, 2)`). Salamanders prefered cascades in both old growth forest (62.8%, n = 201) and clear cut forests (67.1%, n = 247). Pools and side channels had less overall abundance than cascades but salamandars counts were similar between old growth (Pool: 14.1%, n = 45, Side Channel: 23.1%, n = 74) and clear cut (Pool: 8.4%, n = 31, Side Channel: 24.5%, n = 90) for both pool and side channels. 
+
+#### D: Comparing mean Pacific Giant Salamander weight at Old Growth vs. Clear Cut sections in 2017
+
+```{r}
+
+# Create df of salamandar weight for old growth and clear cut sites for 2017
+
+salamandar_weight <- salamander_raw %>% 
+  select(year, section, weight) %>% 
+  filter(year == "2017") %>% 
+  group_by(section)
+
+# Create vector of salamander weight for old growth 
+
+sal_weight_og <- salamandar_weight %>% 
+  filter(section == "OG") %>% 
+  pull(weight)
+
+# Create vector of salamander weight for old growth 
+
+sal_weight_cc <- salamandar_weight %>% 
+  filter(section == "CC") %>% 
+  pull(weight)
+
+# Run 2 sided T Test
+
+ttest_forest_condition <- t.test(sal_weight_og, sal_weight_cc)
+
+# Calculate Cohen d to determine effect size
+d_forest_condition  <- cohen.d(sal_weight_og, sal_weight_cc, na.rm = TRUE)
+
+# Create statistic for Comparison
+
+mean_weight_og <- mean(sal_weight_og, na.rm = TRUE)
+mean_weight_cc <- mean(sal_weight_cc)
+
+# Calculate standard deviation
+
+sd_weight_og <- sd(sal_weight_og, na.rm = TRUE)
+sd_weight_cc <- sd(sal_weight_cc)
+
+# Calculate Sample Sizes
+n_og <- length(sal_weight_og)
+n_cc <- length(sal_weight_cc)
+
+
+```
+
+In 2017, salamanders in old growth sections of Mack Creek had a mean weight (`r round(mean_weight_og, 2)` $\pm$ `r round(sd_weight_og, 2)`, n = `r n_og`) that did not differ signifgantly from the mean weight salamanders in clear cut sections (`r round(mean_weight_cc, 2)` $\pm$ `r round(sd_weight_cc, 2)`, n = `r n_cc`) by a two-sided, two sample t-test (t(`r round(ttest_forest_condition$parameter, 2)`) = `r round(ttest_forest_condition$statistic, 2)`, *p* = `r round(ttest_forest_condition$p.value, 3)`). With a small effect size (Cohen's *d* = `r round(d_forest_condition$estimate, 2)`) the difference in mean salamander weight between old growth sections and clear cut sections of Mack Creek is no noticable.
+
+#### E. Comparing mean Pacific Giant Salamander weight by Channel Classification
+
+```{r}
+# Create df of salamandar weight by channel classification for 2017
+
+sal_weight_class <- salamander_raw %>% 
+  select(year, weight, unittype) %>% 
+  filter(year == "2017", unittype %in% c("C", "P", "SC")) %>% 
+    mutate(unittype = case_when(
+    unittype == "C" ~ "Cascade",
+    unittype == "P" ~ "Pool", 
+    unittype == "SC" ~ "Side Channel")) %>% 
+  group_by(unittype) 
+
+# Create summary table 
+
+sal_mean_class <- sal_weight_class %>% 
+  summarise(mean_weight = mean(weight, na.rm = TRUE),
+            sd = sd(weight, na.rm = TRUE),
+            se = sd(weight, na.rm = TRUE) / sqrt(n()),
+            var = var(weight, na.rm = TRUE),
+            count = n())
+
+# Create vectors of salamander weight for each channel classification 
+
+mean_class_c <- sal_weight_class %>% 
+  filter(unittype == "Cascade") %>% 
+  pull(weight)
+
+mean_class_p <- sal_weight_class %>% 
+  filter(unittype == "Pool") %>% 
+  pull(weight)
+
+mean_class_sc <- sal_weight_class %>% 
+  filter(unittype == "Side Channel") %>% 
+  pull(weight)
+
+# Calculate mean weight for each channel classification
+
+mean_c <- mean(mean_class_c, na.rm = TRUE)
+mean_sc <- mean(mean_class_p, na.rm = TRUE)
+mean_p <- mean(mean_class_sc, na.rm = TRUE)
+
+# Create custom color palette for channel classification
+
+site_palette <- c("#7AD7F0", "#00A6D7", "#0058B3")
+
+# Create Beeswarm plot
+
+ggplot(data = sal_mean_class,
+       aes(x = unittype,
+           y = mean_weight)) +
+  geom_beeswarm(data = sal_weight_class,
+                aes(x = unittype, y = weight,
+                    color = unittype),
+                show.legend = FALSE,
+                alpha = .7,
+                size = 1)+
+  geom_errorbar(data = sal_mean_class,
+                mapping = aes(ymin = mean_weight - sd,
+                              ymax = pmax(mean_weight + sd, 0)),
+                width = 0.1)+
+  geom_point(data = sal_mean_class,
+             aes(x = unittype,
+                 y = mean_weight),
+             color = "black") +
+  scale_color_manual(values = site_palette) +
+  scale_y_continuous(expand = c(0,0),
+                     limits = c(-5, 87.5),
+                     breaks = c(0, 25, 50, 75)) +
+  labs(x = "Channel Classification",
+       y = "Weight (g)",
+       title = "Distribution of Pacific Salamander Weight\n by Channel Classification (2017)") +
+  theme(panel.grid.minor = element_blank(),
+          panel.background = element_blank(),
+          axis.line = element_line(color = "black"), 
+          plot.title = element_text(hjust = .5),
+          plot.caption = element_text(hjust = .5))
+
+```
+**Fig. 2** *Weight distribution for Pacific giant salamanders pools, cascades and side-channels for 2017.* The black dot indicates the mean weight for each channel classification, cascades(n = `r mean_c`), pools (n = `r mean_p`), and side channels (n = `r mean_sc`), and the bars show the standard error. Color indicates channel classification. 
+
+```{r fig.show = 'hide'}
+
+# Look at distributions (histogram and quantile plot) to visuily explore normaility 
+
+ggplot(sal_weight_class, aes(x = weight)) +
+  geom_histogram(aes(fill = unittype),
+                 alpha = 0.5,
+                 show.legend = FALSE,
+                 bins = 15) +
+  facet_wrap(~unittype, scales = "free")+
+  scale_fill_manual(values = site_palette) +
+  scale_color_manual(values = site_palette)
+
+
+ggplot(sal_weight_class, aes(sample = weight)) +
+  geom_qq(aes(color = unittype),
+                 alpha = 0.5,
+                 show.legend = FALSE) +
+  facet_wrap(~unittype, scales = "free") +
+  scale_color_manual(values = site_palette)
+
+# Data is not normal but sample size is n < 30 and because we are taking a parameter (weight) and calculating the mean we can apply the central limit therom to assume the means are normally distributed
+
+# Preform Levene's Test for equal variances
+
+leveneTest(weight ~ unittype, sal_weight_class)
+
+# No siginfigant difference in varience across class classification
+
+# Preform a 1 Way ANOVA to test for siginfigant differences in mean weight across channel classification
+
+sal_class_aov <- aov(weight ~ unittype, sal_weight_class)
+summary(sal_class_aov)
+
+# The one way anova shows a signifigant difference between the means of one or more channel classifications. 
+
+# Preform post-hoc pairwise testing to compare each pair of means
+
+TukeyHSD(sal_class_aov)
+```
+
+
+### References:
+Gregory S. V. 2016. Aquatic Vertebrate Population Study in Mack Creek, Andrews Experimental Forest, 1987 to present. Environmental Data Initiative. https://doi.org/10.6073/pasta/5de64af9c11579266ef20da2ff32f702. Dataset accessed 12/02/2019.
