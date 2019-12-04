@@ -314,7 +314,9 @@ tukey_sal_class <- TukeyHSD(sal_class_aov)
 aov_outputs <- unlist(summary(sal_class_aov))
 ```
 
-The mean weight of Pacific Giant Salamanders differs signifigantly between pools (*$\mu$* = `r round(sal_mean_class$mean_weight[2],2)`g, $\pm$ `r round(sal_mean_class$sd[2], 2)`) and side channels (*$\mu$* = `r round(sal_mean_class$mean_weight[3], 2)`g, $\pm$ `r round(sal_mean_class$sd[3], 2)`) (one-way ANOVA with post-hoc Tukey's HSD, F(`r aov_outputs[1]`, `r aov_outputs[2]`) = `r round(aov_outputs[7],2)`, *p* = `r round(aov_outputs[9],3)`). There was no signifigant difference between the mean weight of salamanders found in cascades (*$\mu$* = `r round(sal_mean_class$mean_weight[1],2)`g, $\pm$ `r round(sal_mean_class$sd[1], 2)`).
+The mean weight of Pacific Giant Salamanders differs signifigantly between pools (*$\mu$* = `r round(sal_mean_class$mean_weight[2],2)`g, $\pm$ `r round(sal_mean_class$sd[2], 2)`) and side channels (*$\mu$* = `r round(sal_mean_class$mean_weight[3], 2)`g, $\pm$ `r round(sal_mean_class$sd[3], 2)`) (one-way ANOVA with post-hoc Tukey's HSD, F(`r aov_outputs[1]`, `r aov_outputs[2]`) = `r round(aov_outputs[7],2)`, *p* = `r round(aov_outputs[9],3)`). There was no signifigant difference between the mean weight of salamanders found in cascades (*$\mu$* = `r round(sal_mean_class$mean_weight[1],2)`g, $\pm$ `r round(sal_mean_class$sd[1], 2)`) compared to pools or side channels.
+
+A post hoc one way ANOVA may not be the best way to analyise difference in weight for salamanaders based on channel classification. Multiple large outliers in weight observastions found in all three channel classifications positivly skew the mean weight for all three groups. Because the means in each group are positivly skewed a rank based test to compare the median weight of each group. 
 
 
 ### References:
